@@ -15,7 +15,7 @@ import java.util.function.Consumer
 import kotlin.math.abs
 
 
-class TankComponent(private var direction: MoveDirection) : Component() {
+class TankComponent( var direction: MoveDirection) : Component() {
 
     private var defaultSpeed: Int = 150
 //    private var speedX: Int = 0
