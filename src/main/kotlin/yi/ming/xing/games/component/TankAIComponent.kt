@@ -2,27 +2,22 @@ package yi.ming.xing.games.component
 
 import com.almasb.fxgl.core.math.FXGLMath
 import com.almasb.fxgl.dsl.FXGL.Companion.getGameWorld
-import com.almasb.fxgl.dsl.FXGL.Companion.run
-import com.almasb.fxgl.dsl.components.ProjectileComponent
 import com.almasb.fxgl.dsl.entityBuilder
-import com.almasb.fxgl.dsl.getGameScene
 import com.almasb.fxgl.dsl.runOnce
 import com.almasb.fxgl.entity.Entity
 import com.almasb.fxgl.entity.component.Component
-import com.almasb.fxgl.entity.state.EntityState
-import com.almasb.fxgl.entity.state.StateComponent
-import javafx.geometry.Point2D
+import com.almasb.fxgl.entity.components.BoundingBoxComponent
 import javafx.geometry.Rectangle2D
 import javafx.scene.layout.*
 import javafx.scene.paint.Color
 import javafx.scene.shape.Rectangle
-import javafx.scene.text.Text
 import javafx.util.Duration
 import yi.ming.xing.games.component.MoveDirection.*
 import yi.ming.xing.games.entity.EntityType
-import java.util.concurrent.atomic.AtomicInteger
 import java.util.function.Consumer
 import kotlin.math.abs
+import kotlin.math.max
+import kotlin.math.min
 
 
 class TankAIComponent() : Component() {
@@ -75,19 +70,28 @@ class TankAIComponent() : Component() {
             .filter {
                 val bulletRoleOpt = it.getPropertyOptional<String>("role")
                 bulletRoleOpt.isPresent && bulletRoleOpt.get() != currentTankRole
-            }
-            .filter{
-                val dangerous = (it.x >= currentTankBox.getMinXWorld() && it.x<=currentTankBox.getMaxXWorld())
-                        || (it.y >= currentTankBox.getMinYWorld() && it.y <= currentTankBox.getMaxYWorld())
-                dangerous && entity.distanceBBox(it) < 300
+            }.filter {
+                entity.distanceBBox(it) < 300
             }
             .sortedBy { entity.distanceBBox(it) }
 
         if (enemyBulletList.isNotEmpty()) {
             val closestBullet = enemyBulletList[0]
             val bulletDirection = closestBullet.getPropertyOptional<MoveDirection>("direction").get()
-            val randomAvoidDirection = MoveDirection.randomAvoid(bulletDirection)
-            tankComponent!!.rotate(randomAvoidDirection)
+
+            val bulletTraceBox = traceBox(
+                closestBullet.boundingBoxComponent,
+                bulletDirection,
+                20,
+                300,
+                Color.GREEN,
+                Duration.seconds(1.0)
+            )
+            val inDanger = getGameWorld().getEntitiesInRange(bulletTraceBox).any { it == entity }
+            if (inDanger) {
+                val randomAvoidDirection = MoveDirection.randomAvoid(bulletDirection)
+                tankComponent!!.rotate(randomAvoidDirection)
+            }
         }
     }
 
@@ -132,44 +136,71 @@ class TankAIComponent() : Component() {
         val tank = tankComponent!!
         val tankBox = tank.entity.boundingBoxComponent
         val randomDirection = MoveDirection.randomAvoid(tank.direction)
-        val vector = randomDirection.vector
-        val width = abs(vector.x * 160) + 40
-        val height = abs(vector.y * 160) + 40
-        var findX = 0.0
-        var findY = 0.0
-        when (randomDirection) {
-            UP -> {
-                findX = tankBox.getMinXWorld()
-                findY = tankBox.getMinYWorld() - height - 1
-            }
-            DOWN -> {
-                findX = tankBox.getMinXWorld()
-                findY = tankBox.getMaxYWorld() + 1
-            }
-            LEFT -> {
-                findX = tankBox.getMinXWorld() - width -1
-                findY = tankBox.getMinYWorld()
-            }
-            RIGHT -> {
-                findX = tankBox.getMaxXWorld() + 1
-                findY = tankBox.getMinYWorld()
-            }
-        }
-        val findRectangle = Rectangle2D(findX, findY,  width, height,)
-        val entitiesInRange = getGameWorld().getEntitiesInRange(findRectangle)
+        val traceBox = traceBox(tankBox, randomDirection, 40, 300, Color.RED, Duration.seconds(1.0))
+        val entitiesInRange = getGameWorld().getEntitiesInRange(traceBox)
         val entityCount = entitiesInRange.count { it != tank.entity }
         if (entityCount == 0 && FXGLMath.randomBoolean()) {
             tank.move(randomDirection)
         }
+    }
+
+    private fun sniffAround() {
+        val tank = tankComponent!!
+        val tankBox = entity.boundingBoxComponent
+        val tankMoveDirection = tank.direction
+
+        val upTraceRange = traceBox(tankBox, UP, 40, 300, Color.GREEN, Duration.seconds(1.0))
+        val rightTraceRange = traceBox(tankBox, RIGHT, 40, 300, Color.GREEN, Duration.seconds(1.0))
+        val downTraceRange = traceBox(tankBox, DOWN, 40, 300, Color.GREEN, Duration.seconds(1.0))
+        val leftTraceRange = traceBox(tankBox, LEFT, 40, 300, Color.GREEN, Duration.seconds(1.0))
+
+        getGameWorld().getEntitiesInRange(upTraceRange)
+    }
+
+    private fun sniffResult(){
+
+    }
+
+    data class SniffResult(val hasEnemy:Boolean, val dangerIn)
+
+    private fun traceBox(targetBox : BoundingBoxComponent, direction:MoveDirection, width: Int, height:Int, color: Color, cleanTime: Duration)
+    : Rectangle2D{
+        val minSide = min(width, height)
+        val maxSide = max(width, height)
+        val vector = direction.vector
+        val width = abs(vector.x * (maxSide - minSide)) + minSide
+        val height = abs(vector.y * (maxSide - minSide)) + minSide
+        var findX = 0.0
+        var findY = 0.0
+
+        when (direction) {
+            UP -> {
+                findX = targetBox.getMinXWorld()
+                findY = targetBox.getMinYWorld() - height - 1
+            }
+            DOWN -> {
+                findX = targetBox.getMinXWorld()
+                findY = targetBox.getMaxYWorld() + 1
+            }
+            LEFT -> {
+                findX = targetBox.getMinXWorld() - width -1
+                findY = targetBox.getMinYWorld()
+            }
+            RIGHT -> {
+                findX = targetBox.getMaxXWorld() + 1
+                findY = targetBox.getMinYWorld()
+            }
+        }
 
         val rectangle = Rectangle(width, height, Color.TRANSPARENT)
-        val markBox = VBox(rectangle, Text("$randomDirection"), Text("$entityCount"))
-        markBox.border = Border(BorderStroke(Color.RED, BorderStrokeStyle.SOLID, null, BorderWidths.DEFAULT))
+        val markBox = if(direction == UP || direction == DOWN) {VBox(rectangle)} else {HBox(rectangle)}
+        markBox.border = Border(BorderStroke(color, BorderStrokeStyle.SOLID, null, BorderWidths.DEFAULT))
         val marker = entityBuilder()
             .at(findX, findY)
             .view(markBox)
             .buildAndAttach()
-        runOnce({ marker.removeFromWorld()}, Duration.seconds(1.0))
+        runOnce({ marker.removeFromWorld()}, cleanTime)
+        return Rectangle2D(findX, findY, width, height)
     }
 
 }
