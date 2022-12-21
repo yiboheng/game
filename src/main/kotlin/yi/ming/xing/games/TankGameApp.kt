@@ -70,7 +70,7 @@ class TankGameApp : GameApplication() {
         onKey(KeyCode.RIGHT, "p2_right"){
             p2!!.getComponent(TankComponent::class.java).moveRight()
         }
-        onKeyDown(KeyCode.DIGIT4, "p2_shoot"){
+        onKeyDown(KeyCode.NUMPAD5, "p2_shoot"){
             p2!!.getComponent(TankComponent::class.java).shoot()
         }
     }
