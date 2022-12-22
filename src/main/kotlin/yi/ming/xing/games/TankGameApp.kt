@@ -43,35 +43,35 @@ class TankGameApp : GameApplication() {
     override fun initInput() {
 
         onKey(KeyCode.W, "p1_up"){
-            p1!!.getComponent(TankComponent::class.java).moveUp()
+            p1?.getComponent(TankComponent::class.java)?.moveUp()
         }
         onKey(KeyCode.S, "p1_down"){
-            p1!!.getComponent(TankComponent::class.java).moveDown()
+            p1?.getComponent(TankComponent::class.java)?.moveDown()
         }
         onKey(KeyCode.A, "p1_left"){
-            p1!!.getComponent(TankComponent::class.java).moveLeft()
+            p1?.getComponent(TankComponent::class.java)?.moveLeft()
         }
         onKey(KeyCode.D, "p1_right"){
-            p1!!.getComponent(TankComponent::class.java).moveRight()
+            p1?.getComponent(TankComponent::class.java)?.moveRight()
         }
         onKeyDown(KeyCode.J, "p1_shoot"){
-            p1!!.getComponent(TankComponent::class.java).shoot()
+            p1?.getComponent(TankComponent::class.java)?.shoot()
         }
 
         onKey(KeyCode.UP, "p2_up"){
-            p2!!.getComponent(TankComponent::class.java).moveUp()
+            p2?.getComponent(TankComponent::class.java)?.moveUp()
         }
         onKey(KeyCode.DOWN, "p2_down"){
-            p2!!.getComponent(TankComponent::class.java).moveDown()
+            p2?.getComponent(TankComponent::class.java)?.moveDown()
         }
         onKey(KeyCode.LEFT, "p2_left"){
-            p2!!.getComponent(TankComponent::class.java).moveLeft()
+            p2?.getComponent(TankComponent::class.java)?.moveLeft()
         }
         onKey(KeyCode.RIGHT, "p2_right"){
-            p2!!.getComponent(TankComponent::class.java).moveRight()
+            p2?.getComponent(TankComponent::class.java)?.moveRight()
         }
         onKeyDown(KeyCode.NUMPAD5, "p2_shoot"){
-            p2!!.getComponent(TankComponent::class.java).shoot()
+            p2?.getComponent(TankComponent::class.java)?.shoot()
         }
     }
 
@@ -110,10 +110,10 @@ class TankGameApp : GameApplication() {
         })
 
         //添加玩家2
-        p2 = spawn("player", SpawnData(x = 3*appWidth / 4, y = appHeight - 100).also {
-            it.put("direction", MoveDirection.UP)
-            it.put("name", "p2")
-        })
+//        p2 = spawn("player", SpawnData(x = 3*appWidth / 4, y = appHeight - 100).also {
+//            it.put("direction", MoveDirection.UP)
+//            it.put("name", "p2")
+//        })
 
         run({
             if(idleEnemyCounter.get()>0){
@@ -148,12 +148,14 @@ class TankGameApp : GameApplication() {
                 spawn("boom", bullet.position)
                 bullet.removeFromWorld()
                 player.removeFromWorld()
-                idleEnemyCounter.incrementAndGet()
-            }
-            val nameOpt = player.getPropertyOptional<String>("name")
-            if (nameOpt.isPresent) {
-                getDialogService().showMessageBox("${nameOpt.get()} 败北"){
-                    getGameController().exit()
+
+                val nameOpt = player.getPropertyOptional<String>("name")
+                if (nameOpt.isPresent) {
+                    getDialogService().showMessageBox("${nameOpt.get()} 败北"){
+                        getGameController().exit()
+                    }
+                } else {
+                    idleEnemyCounter.incrementAndGet()
                 }
             }
         }

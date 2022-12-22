@@ -6,6 +6,7 @@ import com.almasb.fxgl.dsl.runOnce
 import com.almasb.fxgl.entity.Entity
 import com.almasb.fxgl.entity.component.Component
 import com.almasb.fxgl.entity.components.BoundingBoxComponent
+import javafx.geometry.Point2D
 import javafx.geometry.Rectangle2D
 import javafx.scene.layout.*
 import javafx.scene.paint.Color
@@ -58,12 +59,9 @@ class TankAIComponent() : Component() {
         if (dangerResults.isNotEmpty()) {
             val closestResult = dangerResults[0]
             if(closestResult.dangerDistance < 200){
-                if(MoveDirection.canAvoid(tank.direction, closestResult.dangerDirection)){
-                    tank.moveForward()
-                } else {
-                    val avoidDirection = MoveDirection.randomAvoid(closestResult.dangerDirection)
-                    tank.move(avoidDirection)
-                }
+                markBox(closestResult.dangerPosition, 5.0,5.0, Color.TRANSPARENT, Color.RED, Duration.seconds(1.0))
+                val avoidDirection = MoveDirection.randomAvoid(closestResult.dangerDirection)
+                tank.move(avoidDirection)
             }
             return
         }
@@ -72,17 +70,21 @@ class TankAIComponent() : Component() {
         val enemyResults = sniffResults.filter { it.hasEnemy }.sortedBy { it.enemyDistance }
         if (enemyResults.isNotEmpty()) {
             val closestResult = enemyResults[0]
+            markBox(closestResult.enemyPosition, 5.0,5.0, Color.TRANSPARENT, Color.YELLOW, Duration.seconds(1.0))
             tank.move(closestResult.sniffDirection)
             tank.shoot()
             return
         }
 
         // 变更行进方向
-        val noEdgeResults = sniffResults.filter { it.edgeDistance < 200}
+        val noEdgeResults = sniffResults.filter { it.edgeDistance > 200}.sortedByDescending { it.edgeDistance }
         if (noEdgeResults.isNotEmpty()) {
-            if(Random.nextInt(20) == 1){
-                val closestResult = noEdgeResults[0]
+            val closestResult = noEdgeResults[0]
+            if(Random.nextInt(15) == 1){
+                markBox(closestResult.edgePosition, 5.0,5.0, Color.GRAY, Color.BLACK, Duration.seconds(1.0))
                 tank.move(closestResult.sniffDirection)
+            } else {
+                markBox(closestResult.edgePosition, 5.0,5.0, Color.TRANSPARENT, Color.BLACK, Duration.seconds(1.0))
             }
             return
         }
@@ -114,12 +116,17 @@ class TankAIComponent() : Component() {
         var edgeDistance = 999999.9
         var enemyDistance = 999999.9
         var dangerDistance = 999999.9
+        var edgePosition = Point2D(999999.9,999999.9)
+        var enemyPosition = Point2D(999999.9,999999.9)
+        var dangerPosition = Point2D(999999.9,999999.9)
 
         val entitiesInRange = getGameWorld().getEntitiesInRange(range)
         for (it in entitiesInRange) {
             if (it.type == EntityType.EDGE || it.type == EntityType.BRICK) {
+
                 hasEdge = true
                 edgeDistance = entity.distanceBBox(it)
+                edgePosition = it.position
                 continue
             }
             val itRole = it.getPropertyOptional<String>("role")
@@ -127,25 +134,28 @@ class TankAIComponent() : Component() {
                 hasEnemy = true
                 enemyDirection = it.getComponent(TankComponent::class.java).direction
                 enemyDistance = entity.distanceBBox(it)
+                enemyPosition = it.position
                 continue
             }
             if(it.type == EntityType.BULLET && itRole.isPresent && itRole.get()!=tankRole){
                 hasDanger = true
                 dangerDirection = it.getPropertyOptional<MoveDirection>("direction").get()
                 dangerDistance = entity.distanceBBox(it)
+                dangerPosition = it.position
                 continue
             }
         }
-        return SniffResult(hasEnemy, enemyDirection, enemyDistance,
-            hasDanger, dangerDirection, dangerDistance, hasEdge, edgeDistance, sniffDirection)
+        return SniffResult(hasEnemy, enemyDirection, enemyDistance,enemyPosition,
+            hasDanger, dangerDirection, dangerDistance, dangerPosition,
+            hasEdge, edgeDistance, edgePosition, sniffDirection)
     }
 
-    data class SniffResult(val hasEnemy:Boolean, val enemyDirection:MoveDirection, val enemyDistance: Double,
-                           val hasDanger:Boolean, val dangerDirection:MoveDirection, val dangerDistance: Double,
-                           val hasEdge:Boolean, val edgeDistance: Double, val sniffDirection:MoveDirection)
+    data class SniffResult(val hasEnemy:Boolean, val enemyDirection:MoveDirection, val enemyDistance: Double, val enemyPosition:Point2D,
+                           val hasDanger:Boolean, val dangerDirection:MoveDirection, val dangerDistance: Double, val dangerPosition:Point2D,
+                           val hasEdge:Boolean, val edgeDistance: Double, val edgePosition:Point2D, val sniffDirection:MoveDirection)
 
-    private fun traceBox(targetBox : BoundingBoxComponent, direction:MoveDirection, width: Int, height:Int, color: Color, cleanTime: Duration)
-    : Rectangle2D{
+    private fun traceBox(targetBox : BoundingBoxComponent, direction:MoveDirection,
+                         width: Int, height:Int, color: Color, cleanTime: Duration): Rectangle2D{
         val minSide = min(width, height)
         val maxSide = max(width, height)
         val vector = direction.vector
@@ -173,15 +183,18 @@ class TankAIComponent() : Component() {
             }
         }
 
-//        val rectangle = Rectangle(markBoxWidth, markBoxHeight, Color.TRANSPARENT)
-//        val markBox = if(direction == UP || direction == DOWN) {VBox(rectangle)} else {HBox(rectangle)}
-//        markBox.border = Border(BorderStroke(color, BorderStrokeStyle.SOLID, null, BorderWidths.DEFAULT))
-//        val marker = entityBuilder()
-//            .at(markBoxX, markBoxY)
-//            .view(markBox)
-//            .buildAndAttach()
-//        runOnce({ marker.removeFromWorld()}, cleanTime)
+        markBox(Point2D(markBoxX, markBoxY), markBoxWidth, markBoxHeight, Color.TRANSPARENT, color, cleanTime)
         return Rectangle2D(markBoxX, markBoxY, markBoxWidth, markBoxHeight)
+    }
+
+    private fun markBox(position:Point2D, width:Double, height:Double, fillColor:Color, borderColor:Color, cleanTime: Duration) {
+        val markBox = VBox(Rectangle(width, height, fillColor))
+        markBox.border = Border(BorderStroke(borderColor, BorderStrokeStyle.SOLID, null, BorderWidths.DEFAULT))
+        val marker = entityBuilder()
+            .at(position)
+            .view(markBox)
+            .buildAndAttach()
+        runOnce({ marker.removeFromWorld()}, cleanTime)
     }
 
 }
