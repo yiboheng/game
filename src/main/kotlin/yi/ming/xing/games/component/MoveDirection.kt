@@ -30,6 +30,15 @@ enum class MoveDirection(val vector: Point2D) {
             }
         }
 
+        fun reverse(i: MoveDirection): MoveDirection {
+            return when (i) {
+                UP -> DOWN
+                DOWN -> UP
+                LEFT -> RIGHT
+                RIGHT -> LEFT
+            }
+        }
+
         fun randomAvoid(i: MoveDirection): MoveDirection {
             return when (i) {
                 UP -> FXGLMath.random(upAvoidDirections).get()

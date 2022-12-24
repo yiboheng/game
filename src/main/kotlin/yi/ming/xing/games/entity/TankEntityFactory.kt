@@ -36,6 +36,7 @@ class TankEntityFactory:EntityFactory {
         return newTank(data)
             .type(PLAYER)
             .with("role", "player")
+            .view(Rectangle(tankBboxWidth, tankBboxHeight, data.get("color")).also { it.blendMode = COLOR_BURN })
             .with("name", data.get("name"))
             .build()
     }

@@ -1,16 +1,12 @@
 package yi.ming.xing.games.component
 
 import com.almasb.fxgl.dsl.FXGL.Companion.getGameWorld
-import com.almasb.fxgl.dsl.entityBuilder
-import com.almasb.fxgl.dsl.runOnce
-import com.almasb.fxgl.entity.Entity
+import com.almasb.fxgl.dsl.newLocalTimer
 import com.almasb.fxgl.entity.component.Component
 import com.almasb.fxgl.entity.components.BoundingBoxComponent
 import javafx.geometry.Point2D
 import javafx.geometry.Rectangle2D
-import javafx.scene.layout.*
 import javafx.scene.paint.Color
-import javafx.scene.shape.Rectangle
 import javafx.util.Duration
 import yi.ming.xing.games.component.MoveDirection.*
 import yi.ming.xing.games.entity.EntityType
@@ -26,26 +22,23 @@ class TankAIComponent() : Component() {
     private lateinit var tank: TankComponent
     private lateinit var tankRole: String
 
+    private val sniffTimer = newLocalTimer()
+    private val sniffInterval = Duration.seconds(0.2)
     override fun onAdded() {
         tankRole = entity.getPropertyOptional<String>("role").get()
         tank = entity.getComponent(TankComponent::class.java)
         tank.registerOnCollisionFunction(Consumer { direction ->
             tank.rotate(MoveDirection.randomNext(direction),true)
         })
-
     }
 
-    private var lastSniffTime = 0L
-    private val sniffInterval = 200
     override fun onUpdate(tpf: Double) {
-        val currentTime = System.currentTimeMillis()
-
-        if (currentTime - lastSniffTime > sniffInterval) {
-            lastSniffTime = currentTime
-            doSniffAround()
-        }
-
         tank.moveForward()
+        if(!sniffTimer.elapsed(sniffInterval)){
+            return
+        }
+        sniffTimer.capture()
+        doSniffAround()
     }
 
     private fun doSniffAround() {
@@ -58,6 +51,9 @@ class TankAIComponent() : Component() {
         val dangerResults = sniffResults.filter { it.hasDanger }.sortedBy { it.dangerDistance }
         if (dangerResults.isNotEmpty()) {
             val closestResult = dangerResults[0]
+            val reverseDangerDirection = MoveDirection.reverse(closestResult.dangerDirection)
+            tank.rotate(reverseDangerDirection)
+            tank.shoot()
             if(closestResult.dangerDistance < 200){
                 markBox(closestResult.dangerPosition, 5.0,5.0, Color.TRANSPARENT, Color.RED, Duration.seconds(1.0))
                 val avoidDirection = MoveDirection.randomAvoid(closestResult.dangerDirection)
@@ -188,13 +184,13 @@ class TankAIComponent() : Component() {
     }
 
     private fun markBox(position:Point2D, width:Double, height:Double, fillColor:Color, borderColor:Color, cleanTime: Duration) {
-        val markBox = VBox(Rectangle(width, height, fillColor))
-        markBox.border = Border(BorderStroke(borderColor, BorderStrokeStyle.SOLID, null, BorderWidths.DEFAULT))
-        val marker = entityBuilder()
-            .at(position)
-            .view(markBox)
-            .buildAndAttach()
-        runOnce({ marker.removeFromWorld()}, cleanTime)
+//        val markBox = VBox(Rectangle(width, height, fillColor))
+//        markBox.border = Border(BorderStroke(borderColor, BorderStrokeStyle.SOLID, null, BorderWidths.DEFAULT))
+//        val marker = entityBuilder()
+//            .at(position)
+//            .view(markBox)
+//            .buildAndAttach()
+//        runOnce({ marker.removeFromWorld()}, cleanTime)
     }
 
 }

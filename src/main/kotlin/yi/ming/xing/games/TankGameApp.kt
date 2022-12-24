@@ -30,7 +30,8 @@ class TankGameApp : GameApplication() {
     private var p1: Entity? = null
     private var p2: Entity? = null
 
-    private val idleEnemyCounter = AtomicInteger(1)
+    private val idleEnemyCounter = AtomicInteger(2)
+    private var restart = false
 
     override fun initSettings(settings: GameSettings) {
         with(settings) {
@@ -106,14 +107,16 @@ class TankGameApp : GameApplication() {
         //添加玩家1
         p1 = spawn("player", SpawnData(x = appWidth / 4, y = appHeight - 100).also {
             it.put("direction", MoveDirection.UP)
+            it.put("color", Color.LIGHTPINK)
             it.put("name", "p1")
         })
 
         //添加玩家2
-//        p2 = spawn("player", SpawnData(x = 3*appWidth / 4, y = appHeight - 100).also {
-//            it.put("direction", MoveDirection.UP)
-//            it.put("name", "p2")
-//        })
+        p2 = spawn("player", SpawnData(x = 3*appWidth / 4, y = appHeight - 100).also {
+            it.put("direction", MoveDirection.UP)
+            it.put("color", Color.LIGHTBLUE)
+            it.put("name", "p2")
+        })
 
         run({
             if(idleEnemyCounter.get()>0){
@@ -141,21 +144,20 @@ class TankGameApp : GameApplication() {
         }
 
         onCollisionBegin(EntityType.BULLET, EntityType.PLAYER) { bullet, player ->
+            spawn("boom", bullet.position)
+            bullet.removeFromWorld()
 
             val playerRole = player.getPropertyOptional<String>("role")
             val bulletRole = bullet.getPropertyOptional<String>("role")
             if (bulletRole != playerRole) {
-                spawn("boom", bullet.position)
-                bullet.removeFromWorld()
                 player.removeFromWorld()
-
                 val nameOpt = player.getPropertyOptional<String>("name")
-                if (nameOpt.isPresent) {
+                if (nameOpt.isEmpty) {
+                    idleEnemyCounter.incrementAndGet()
+                } else {
                     getDialogService().showMessageBox("${nameOpt.get()} 败北"){
                         getGameController().exit()
                     }
-                } else {
-                    idleEnemyCounter.incrementAndGet()
                 }
             }
         }
@@ -181,6 +183,10 @@ class TankGameApp : GameApplication() {
             println("knock brick")
             player.getComponent(TankComponent::class.java).onCollision(brick)
         }
+
+    }
+
+    override fun onUpdate(tpf: Double) {
 
     }
 

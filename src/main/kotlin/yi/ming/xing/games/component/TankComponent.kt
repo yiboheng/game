@@ -1,6 +1,7 @@
 package yi.ming.xing.games.component
 
 import com.almasb.fxgl.dsl.FXGL
+import com.almasb.fxgl.dsl.newLocalTimer
 import com.almasb.fxgl.dsl.play
 import com.almasb.fxgl.dsl.spawn
 import com.almasb.fxgl.entity.Entity
@@ -11,6 +12,7 @@ import com.almasb.fxgl.texture.AnimationChannel
 import javafx.geometry.Point2D
 import javafx.util.Duration
 import yi.ming.xing.games.component.MoveDirection.*
+import java.util.Optional
 import java.util.function.Consumer
 import kotlin.math.abs
 
@@ -18,14 +20,13 @@ import kotlin.math.abs
 class TankComponent( var direction: MoveDirection) : Component() {
 
     private var defaultSpeed: Int = 150
-//    private var speedX: Int = 0
-//    private var speedY: Int = 0
     private var moveSpeed = 0
 
     private val animaRun = AnimationChannel(FXGL.image("tank.png"), 4, 40, 40, Duration.seconds(1.0), 0, 3)
     private val animaStop = AnimationChannel(FXGL.image("tank.png"), 4, 40, 40, Duration.seconds(1.0), 0, 0)
     private var animaTexture = AnimatedTexture(animaStop)
-
+    private val shootTimer = newLocalTimer()
+    private val shootInterval = Duration.seconds(0.5)
     init {
 
     }
@@ -116,21 +117,27 @@ class TankComponent( var direction: MoveDirection) : Component() {
         }
     }
 
-    fun shoot(): Entity {
+
+    fun shoot(): Optional<Entity> {
+        if( !shootTimer.elapsed(shootInterval)){
+            return Optional.empty()
+        }
+        shootTimer.capture()
         play("tankFire.wav")
         var x = entity.position.x
         var y = entity.position.y
         when(direction){
-            UP -> {x +=17}
-            DOWN -> {x +=17; y+=35}
-            LEFT -> {y +=17}
-            RIGHT -> {x +=35; y +=17}
+            UP -> {x +=17; y -=15}
+            DOWN -> {x +=17; y+=50}
+            LEFT -> {y +=17; x-=15}
+            RIGHT -> {x +=50; y +=17}
         }
-        return spawn("bullet", SpawnData(x, y).also {
+        val bullet = spawn("bullet", SpawnData(x, y).also {
             it.put("direction", direction)
             it.put("speed", 400)
             it.put("damage", 1)
             it.put("role", entity.getPropertyOptional<String>("role").get())
         })
+        return Optional.of(bullet)
     }
 }
