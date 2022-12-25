@@ -7,11 +7,15 @@ import com.almasb.fxgl.dsl.spawn
 import com.almasb.fxgl.entity.Entity
 import com.almasb.fxgl.entity.SpawnData
 import com.almasb.fxgl.entity.component.Component
+import com.almasb.fxgl.physics.PhysicsComponent
+import com.almasb.fxgl.physics.box2d.dynamics.BodyType
+import com.almasb.fxgl.physics.box2d.dynamics.FixtureDef
 import com.almasb.fxgl.texture.AnimatedTexture
 import com.almasb.fxgl.texture.AnimationChannel
 import javafx.geometry.Point2D
 import javafx.util.Duration
 import yi.ming.xing.games.component.MoveDirection.*
+import yi.ming.xing.games.entity.EntityType
 import java.util.Optional
 import java.util.function.Consumer
 import kotlin.math.abs
@@ -20,15 +24,13 @@ import kotlin.math.abs
 class TankComponent( var direction: MoveDirection) : Component() {
 
     private var defaultSpeed: Int = 150
-    private var moveSpeed = 0
-
+    var moveSpeed = 0
     private val animaRun = AnimationChannel(FXGL.image("tank.png"), 4, 40, 40, Duration.seconds(1.0), 0, 3)
     private val animaStop = AnimationChannel(FXGL.image("tank.png"), 4, 40, 40, Duration.seconds(1.0), 0, 0)
     private var animaTexture = AnimatedTexture(animaStop)
     private val shootTimer = newLocalTimer()
     private val shootInterval = Duration.seconds(0.5)
     init {
-
     }
 
     override fun onAdded() {
@@ -39,9 +41,15 @@ class TankComponent( var direction: MoveDirection) : Component() {
     }
 
     override fun onUpdate(tpf: Double) {
+        updateInternal1(tpf)
+    }
 
-        val dx = direction.vector.x * moveSpeed * tpf
-        val dy = direction.vector.y * moveSpeed * tpf
+    private fun updateInternal1(tpf: Double) {
+        val vx = direction.vector.x
+        val vy = direction.vector.y
+
+        val dx = vx * moveSpeed * tpf
+        val dy = vy * moveSpeed * tpf
         val absDx = abs(dx)
         val absDy = abs(dy)
 
@@ -88,16 +96,43 @@ class TankComponent( var direction: MoveDirection) : Component() {
     }
 
     fun onCollision(other: Entity) {
-        setSpeed(0)
-
         val distance = entity.distanceBBox(other)
         if(distance < 1){
-            val backX = -direction.vector.x*5
-            val backY = -direction.vector.y*5
-            println("stop back direction = $backX, $backY")
-            onCollisionFunction?.accept(direction)
-            entity.translate(backX, backY)
+            val forwardX = direction.vector.x
+            val forwardY = direction.vector.y
+            if (other.type == EntityType.PLAYER) {
+                val e1 = entity.getPropertyOptional<String>("name").get()
+                val e2 = other.getPropertyOptional<String>("name").get()
+                val otherTank = other.getComponent(TankComponent::class.java)
+                val otherTankDirection = otherTank.direction
+                val otherTankSpeed = otherTank.moveSpeed
+                val knockX = otherTankDirection.vector.x
+                val knockY = otherTankDirection.vector.y
+                println(" ==== tank knock tank ==== ")
+                println("$e1 knock $e2 , $e1 tank direction = $direction, speed = $moveSpeed ; $e2 tank direction = $otherTankDirection, speed=$otherTankSpeed")
+                val factor = 3
+                if(moveSpeed < 1 && otherTankSpeed > 1){
+                    println("case 1")
+                    entity.translate(knockX*factor, knockY*factor)
+                    other.translate(-knockX*factor, -knockY*factor)
+                } else if (moveSpeed > 1 && otherTankSpeed < 1) {
+                    println("case 2")
+                    entity.translate(-forwardX*factor, -forwardY*factor)
+                    other.translate(forwardX*factor, forwardY*factor)
+                } else if (moveSpeed > 1 && otherTankSpeed > 1){
+                    println("case 3")
+                    entity.translate((knockX+forwardX)*factor, (knockY+forwardY)*factor)
+                    other.translate((knockX+forwardX)*factor, (knockY+forwardY)*factor)
+                }
+                println(" ========= ")
+                otherTank.setSpeed(0)
+                onCollisionFunction?.accept(direction)
+            } else {
+                entity.translate(-forwardX*5, -forwardY*5)
+                onCollisionFunction?.accept(direction)
+            }
         }
+        setSpeed(0)
     }
 
     private var onCollisionFunction : Consumer<MoveDirection>? = null
@@ -105,6 +140,8 @@ class TankComponent( var direction: MoveDirection) : Component() {
     fun registerOnCollisionFunction(f:Consumer<MoveDirection>){
         onCollisionFunction = f
     }
+
+
 
     fun setSpeed(speed: Int){
         moveSpeed = speed

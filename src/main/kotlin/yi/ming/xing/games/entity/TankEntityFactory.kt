@@ -14,6 +14,7 @@ import com.almasb.fxgl.entity.action.ActionComponent
 import com.almasb.fxgl.entity.state.StateComponent
 import com.almasb.fxgl.physics.BoundingShape
 import com.almasb.fxgl.physics.HitBox
+import com.almasb.fxgl.physics.PhysicsComponent
 import javafx.geometry.Point2D
 import javafx.scene.effect.BlendMode
 import javafx.scene.effect.BlendMode.COLOR_BURN
@@ -129,12 +130,10 @@ class TankEntityFactory:EntityFactory {
         }
 
         return FXGL.entityBuilder(data)
-            .viewWithBBox(Rectangle(tankBboxWidth, tankBboxHeight, Color.TRANSPARENT))
+            .bbox(BoundingShape.box(tankBboxWidth, tankBboxHeight))
             .collidable()
             .with(TankComponent(direction))
             .with(HealthIntComponent(health))
-//            .with(ActionComponent())
-//            .with(StateComponent())
     }
 
 }

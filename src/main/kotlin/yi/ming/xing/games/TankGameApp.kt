@@ -15,7 +15,6 @@ import yi.ming.xing.games.component.TankAIComponent
 import yi.ming.xing.games.component.TankComponent
 import yi.ming.xing.games.entity.EntityType
 import yi.ming.xing.games.entity.TankEntityFactory
-import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.max
 import kotlin.math.min
@@ -30,14 +29,21 @@ class TankGameApp : GameApplication() {
     private var p1: Entity? = null
     private var p2: Entity? = null
 
-    private val idleEnemyCounter = AtomicInteger(2)
+    private val idleEnemyCounter = AtomicInteger(0)
     private var restart = false
+    private val isRelease = false
 
     override fun initSettings(settings: GameSettings) {
         with(settings) {
             width = 1600
             height = 800
             title = "TankWar"
+            version = "1.0"
+            isIntroEnabled = isRelease
+            isMainMenuEnabled = isRelease
+            isGameMenuEnabled = isRelease
+            isFullScreenAllowed = isRelease
+            isFullScreenFromStart = isRelease
         }
     }
 
@@ -77,6 +83,7 @@ class TankGameApp : GameApplication() {
     }
 
     override fun initGame() {
+        entityBuilder().buildScreenBoundsAndAttach(100.0)
 //        run({
 //            spawnTarget()
 //        }, Duration.seconds(1.0))
@@ -96,7 +103,7 @@ class TankGameApp : GameApplication() {
 
         val edgeWidth = 20.0
 
-        spawnEdges()
+//        spawnEdges()
 
         //添加一块砖
         spawnBricks()
@@ -111,7 +118,7 @@ class TankGameApp : GameApplication() {
             it.put("name", "p1")
         })
 
-        //添加玩家2
+//        添加玩家2
         p2 = spawn("player", SpawnData(x = 3*appWidth / 4, y = appHeight - 100).also {
             it.put("direction", MoveDirection.UP)
             it.put("color", Color.LIGHTBLUE)
@@ -156,7 +163,7 @@ class TankGameApp : GameApplication() {
                     idleEnemyCounter.incrementAndGet()
                 } else {
                     getDialogService().showMessageBox("${nameOpt.get()} 败北"){
-                        getGameController().exit()
+                        getGameController().gotoMainMenu()
                     }
                 }
             }
@@ -164,7 +171,6 @@ class TankGameApp : GameApplication() {
 
         onCollisionBegin(EntityType.PLAYER, EntityType.PLAYER) { player, ps ->
             player.getComponent(TankComponent::class.java).onCollision(ps)
-            ps.getComponent(TankComponent::class.java).onCollision(ps)
         }
 
         onCollisionBegin(EntityType.PLAYER, EntityType.EDGE) { player, edge ->
@@ -183,7 +189,6 @@ class TankGameApp : GameApplication() {
             println("knock brick")
             player.getComponent(TankComponent::class.java).onCollision(brick)
         }
-
     }
 
     override fun onUpdate(tpf: Double) {
