@@ -1,4 +1,4 @@
-package yi.ming.xing.games.component
+package yi.games.tank.component
 
 import com.almasb.fxgl.dsl.FXGL
 import com.almasb.fxgl.dsl.components.ExpireCleanComponent
@@ -9,31 +9,27 @@ import com.almasb.fxgl.texture.AnimationChannel
 import javafx.util.Duration
 
 
-class OilBagComponent:Component() {
-
-    private var animaBoom: AnimationChannel = AnimationChannel(FXGL.image("oil2.png"), 6, 60, 60, Duration.seconds(1.0), 1, 5)
-    private var animaEmpty: AnimationChannel = AnimationChannel(FXGL.image("oil2.png"), 6, 60, 60, Duration.seconds(0.5), 0, 0)
+class BoomComponent:Component() {
+    private var animaBoom: AnimationChannel = AnimationChannel(FXGL.image("boom2.png"), 6, 40, 40, Duration.seconds(0.5), 1, 5)
+    private var animaEmpty: AnimationChannel = AnimationChannel(FXGL.image("boom2.png"), 6, 40, 40, Duration.seconds(0.1), 0, 0)
     private var animaTexture: AnimatedTexture = AnimatedTexture(animaEmpty)
-
-    private var boom = false
 
     init {
     }
 
     override fun onAdded() {
         entity.viewComponent.addChild(animaTexture)
-
+        entity.addComponent(ExpireCleanComponent(Duration.seconds(0.5)))
     }
 
     override fun onUpdate(tpf: Double) {
-        if(boom && animaTexture.animationChannel == animaEmpty){
-            play("oilBoom.wav")
+        if (animaTexture.animationChannel == animaEmpty) {
+            play("bulletBoom.wav")
             animaTexture.loopAnimationChannel(animaBoom)
         }
     }
 
-    fun boomAndClean(){
-        boom = true
-        entity.addComponent(ExpireCleanComponent(Duration.seconds(1.0)))
+    fun reBoom(){
+        animaTexture.loopAnimationChannel(animaEmpty)
     }
 }

@@ -1,4 +1,4 @@
-package yi.ming.xing.games.component
+package yi.games.tank.component
 
 import com.almasb.fxgl.dsl.FXGL.Companion.getGameWorld
 import com.almasb.fxgl.dsl.newLocalTimer
@@ -8,8 +8,8 @@ import javafx.geometry.Point2D
 import javafx.geometry.Rectangle2D
 import javafx.scene.paint.Color
 import javafx.util.Duration
-import yi.ming.xing.games.component.MoveDirection.*
-import yi.ming.xing.games.entity.EntityType
+import yi.games.tank.component.MoveDirection.*
+import yi.games.tank.entity.EntityType
 import java.util.function.Consumer
 import kotlin.math.abs
 import kotlin.math.max
@@ -103,7 +103,7 @@ class TankAIComponent() : Component() {
         return listOf(upSniffResult, rightSniffResult, downSniffResult, leftSniffResult)
     }
 
-    private fun sniffRange(range: Rectangle2D, sniffDirection: MoveDirection):SniffResult{
+    private fun sniffRange(range: Rectangle2D, sniffDirection: MoveDirection): SniffResult {
         var hasEdge = false
         var hasEnemy = false
         var hasDanger = false
@@ -146,11 +146,12 @@ class TankAIComponent() : Component() {
             hasEdge, edgeDistance, edgePosition, sniffDirection)
     }
 
-    data class SniffResult(val hasEnemy:Boolean, val enemyDirection:MoveDirection, val enemyDistance: Double, val enemyPosition:Point2D,
-                           val hasDanger:Boolean, val dangerDirection:MoveDirection, val dangerDistance: Double, val dangerPosition:Point2D,
-                           val hasEdge:Boolean, val edgeDistance: Double, val edgePosition:Point2D, val sniffDirection:MoveDirection)
+    data class SniffResult(val hasEnemy:Boolean, val enemyDirection: MoveDirection, val enemyDistance: Double, val enemyPosition:Point2D,
+                           val hasDanger:Boolean, val dangerDirection: MoveDirection, val dangerDistance: Double, val dangerPosition:Point2D,
+                           val hasEdge:Boolean, val edgeDistance: Double, val edgePosition:Point2D, val sniffDirection: MoveDirection
+    )
 
-    private fun traceBox(targetBox : BoundingBoxComponent, direction:MoveDirection,
+    private fun traceBox(targetBox : BoundingBoxComponent, direction: MoveDirection,
                          width: Int, height:Int, color: Color, cleanTime: Duration): Rectangle2D{
         val minSide = min(width, height)
         val maxSide = max(width, height)

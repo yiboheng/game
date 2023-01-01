@@ -1,4 +1,4 @@
-package yi.ming.xing.games.entity
+package yi.games.tank.entity
 
 enum class EntityType {
     BULLET, BRICK, PLAYER, ELF, OIL, EDGE

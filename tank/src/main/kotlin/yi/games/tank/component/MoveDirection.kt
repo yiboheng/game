@@ -1,14 +1,14 @@
-package yi.ming.xing.games.component
+package yi.games.tank.component
 
 import com.almasb.fxgl.core.math.FXGLMath
 import javafx.geometry.Point2D
 
-enum class MoveDirection(val vector: Point2D) {
+enum class MoveDirection(val vector: Point2D, val angle: Double) {
 
-    UP(Point2D(0.0, -1.0)),
-    DOWN(Point2D(0.0, 1.0)),
-    LEFT(Point2D(-1.0, 0.0)),
-    RIGHT(Point2D(1.0, 0.0)), ;
+    UP(Point2D(0.0, -1.0), 270.0),
+    DOWN(Point2D(0.0, 1.0), 90.0),
+    LEFT(Point2D(-1.0, 0.0), 180.0),
+    RIGHT(Point2D(1.0, 0.0), 0.0), ;
 
     companion object {
         private val upNextDirections = arrayOf(LEFT, RIGHT, DOWN)

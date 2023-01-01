@@ -1,4 +1,4 @@
-package yi.ming.xing.games
+package yi.games.tank
 
 import com.almasb.fxgl.app.GameApplication
 import com.almasb.fxgl.app.GameSettings
@@ -10,11 +10,11 @@ import javafx.scene.input.KeyCode
 import javafx.scene.paint.Color
 import javafx.scene.shape.Rectangle
 import javafx.util.Duration
-import yi.ming.xing.games.component.MoveDirection
-import yi.ming.xing.games.component.TankAIComponent
-import yi.ming.xing.games.component.TankComponent
-import yi.ming.xing.games.entity.EntityType
-import yi.ming.xing.games.entity.TankEntityFactory
+import yi.games.tank.component.MoveDirection
+import yi.games.tank.component.TankAIComponent
+import yi.games.tank.component.TankComponent
+import yi.games.tank.entity.EntityType
+import yi.games.tank.entity.TankEntityFactory
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.max
 import kotlin.math.min
@@ -113,7 +113,7 @@ class TankGameApp : GameApplication() {
 
         //添加玩家1
         p1 = spawn("player", SpawnData(x = appWidth / 4, y = appHeight - 100).also {
-            it.put("direction", MoveDirection.UP)
+            it.put("direction", MoveDirection.RIGHT)
             it.put("color", Color.LIGHTPINK)
             it.put("name", "p1")
         })
@@ -139,6 +139,8 @@ class TankGameApp : GameApplication() {
     }
 
     override fun initPhysics() {
+        getPhysicsWorld().setGravity(0.0,0.0)
+
         onCollisionBegin(EntityType.BULLET, EntityType.BRICK) { bullet, brick ->
             spawn("boom", bullet.position)
             bullet.removeFromWorld()
@@ -150,24 +152,24 @@ class TankGameApp : GameApplication() {
             bullet.removeFromWorld()
         }
 
-        onCollisionBegin(EntityType.BULLET, EntityType.PLAYER) { bullet, player ->
-            spawn("boom", bullet.position)
-            bullet.removeFromWorld()
-
-            val playerRole = player.getPropertyOptional<String>("role")
-            val bulletRole = bullet.getPropertyOptional<String>("role")
-            if (bulletRole != playerRole) {
-                player.removeFromWorld()
-                val nameOpt = player.getPropertyOptional<String>("name")
-                if (nameOpt.isEmpty) {
-                    idleEnemyCounter.incrementAndGet()
-                } else {
-                    getDialogService().showMessageBox("${nameOpt.get()} 败北"){
-                        getGameController().gotoMainMenu()
-                    }
-                }
-            }
-        }
+//        onCollisionBegin(EntityType.BULLET, EntityType.PLAYER) { bullet, player ->
+//            spawn("boom", bullet.position)
+//            bullet.removeFromWorld()
+//
+//            val playerRole = player.getPropertyOptional<String>("role")
+//            val bulletRole = bullet.getPropertyOptional<String>("role")
+//            if (bulletRole != playerRole) {
+//                player.removeFromWorld()
+//                val nameOpt = player.getPropertyOptional<String>("name")
+//                if (nameOpt.isEmpty) {
+//                    idleEnemyCounter.incrementAndGet()
+//                } else {
+//                    getDialogService().showMessageBox("${nameOpt.get()} 败北"){
+//                        getGameController().gotoMainMenu()
+//                    }
+//                }
+//            }
+//        }
 
         onCollisionBegin(EntityType.PLAYER, EntityType.PLAYER) { player, ps ->
             player.getComponent(TankComponent::class.java).onCollision(ps)
@@ -176,9 +178,7 @@ class TankGameApp : GameApplication() {
         onCollisionBegin(EntityType.PLAYER, EntityType.EDGE) { player, edge ->
             val edgeBox = edge.boundingBoxComponent
             val tankBox = player.boundingBoxComponent
-            edge.viewComponent.addChild(Rectangle(10.0,10.0, Color.RED).also {
-
-            })
+            edge.viewComponent.addChild(Rectangle(10.0,10.0, Color.RED))
             println("\n knock edge =========== >" +
                     " \n distanceBox = ${player.distanceBBox(edge)}, distance = ${player.distance(edge)}," +
                     "\n tank minX = ${tankBox.getMinXWorld()}, minY = ${tankBox.getMinYWorld()}, maxX = ${tankBox.getMaxXWorld()}, maxY = ${tankBox.getMaxYWorld()}" +

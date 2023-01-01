@@ -1,31 +1,28 @@
-package yi.ming.xing.games.entity
+package yi.games.tank.entity
 
 import com.almasb.fxgl.dsl.EntityBuilder
 import com.almasb.fxgl.dsl.FXGL
 import com.almasb.fxgl.dsl.components.HealthIntComponent
-import com.almasb.fxgl.dsl.components.ProjectileComponent
 import com.almasb.fxgl.dsl.entityBuilder
 import com.almasb.fxgl.dsl.texture
 import com.almasb.fxgl.entity.Entity
 import com.almasb.fxgl.entity.EntityFactory
 import com.almasb.fxgl.entity.SpawnData
 import com.almasb.fxgl.entity.Spawns
-import com.almasb.fxgl.entity.action.ActionComponent
-import com.almasb.fxgl.entity.state.StateComponent
 import com.almasb.fxgl.physics.BoundingShape
-import com.almasb.fxgl.physics.HitBox
 import com.almasb.fxgl.physics.PhysicsComponent
-import javafx.geometry.Point2D
-import javafx.scene.effect.BlendMode
-import javafx.scene.effect.BlendMode.COLOR_BURN
+import com.almasb.fxgl.physics.box2d.dynamics.BodyDef
+import com.almasb.fxgl.physics.box2d.dynamics.BodyType
+import com.almasb.fxgl.physics.box2d.dynamics.FixtureDef
+import javafx.scene.effect.BlendMode.*
 import javafx.scene.paint.Color
 import javafx.scene.shape.Rectangle
-import yi.ming.xing.games.entity.EntityType.*
-import yi.ming.xing.games.component.BoomComponent
-import yi.ming.xing.games.component.MoveDirection.RIGHT
-import yi.ming.xing.games.component.MoveDirection.UP
-import yi.ming.xing.games.component.OilBagComponent
-import yi.ming.xing.games.component.TankComponent
+import yi.games.tank.component.BoomComponent
+import yi.games.tank.component.MoveDirection.RIGHT
+import yi.games.tank.component.MoveDirection.UP
+import yi.games.tank.component.OilBagComponent
+import yi.games.tank.component.TankComponent
+import yi.games.tank.entity.EntityType.*
 
 class TankEntityFactory:EntityFactory {
 
@@ -37,7 +34,6 @@ class TankEntityFactory:EntityFactory {
         return newTank(data)
             .type(PLAYER)
             .with("role", "player")
-            .view(Rectangle(tankBboxWidth, tankBboxHeight, data.get("color")).also { it.blendMode = COLOR_BURN })
             .with("name", data.get("name"))
             .build()
     }
@@ -73,9 +69,25 @@ class TankEntityFactory:EntityFactory {
         return entityBuilder(data)
             .type(BULLET)
             .view("bullet.png")
-            .viewWithBBox(Rectangle(1.0,1.0, Color.TRANSPARENT))
+            .bbox(BoundingShape.box(16.0, 5.0))
             .collidable()
-            .with(ProjectileComponent(direction.vector, speed))
+            .with(PhysicsComponent().also {
+                it.setBodyDef(BodyDef().also { bodyDef ->
+                    bodyDef.isBullet = true
+                    bodyDef.type = BodyType.DYNAMIC
+                    bodyDef.linearDamping = 0.2f
+                    bodyDef.angularDamping = 0.2f
+                    bodyDef.isFixedRotation = true
+                })
+                it.setFixtureDef(FixtureDef().also { fixtureDef ->
+                    fixtureDef.density = 1000f
+                    fixtureDef.friction = 0.1f
+                })
+                it.setOnPhysicsInitialized {
+                    it.linearVelocity = direction.vector.multiply(1000.0)
+                    it.overwriteAngle(direction.angle)
+                }
+            })
             .with("damage", damage)
             .with("role", role)
             .build()
@@ -105,6 +117,7 @@ class TankEntityFactory:EntityFactory {
             .type(BRICK)
             .viewWithBBox(texture("brick.png", 40.0,40.0))
             .opacity(0.5)
+            .with(PhysicsComponent())
             .collidable()
             .build()
     }
@@ -131,8 +144,20 @@ class TankEntityFactory:EntityFactory {
 
         return FXGL.entityBuilder(data)
             .bbox(BoundingShape.box(tankBboxWidth, tankBboxHeight))
-            .collidable()
+            .with(PhysicsComponent().also {
+                it.setFixtureDef(FixtureDef().also {fixtureDef ->
+                    fixtureDef.density = 1000f
+                    fixtureDef.friction = 0.7f
+                })
+                it.setBodyDef(BodyDef().also {bodyDef ->
+                    bodyDef.type = BodyType.DYNAMIC
+                    bodyDef.linearDamping = 2f
+                    bodyDef.angularDamping = 0.2f
+                    bodyDef.isFixedRotation = true
+                })
+            })
             .with(TankComponent(direction))
+            .collidable()
             .with(HealthIntComponent(health))
     }
 

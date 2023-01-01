@@ -1,4 +1,4 @@
-package yi.ming.xing.games.component
+package yi.games.tank.component
 
 import com.almasb.fxgl.core.math.FXGLMath
 import com.almasb.fxgl.dsl.FXGL
