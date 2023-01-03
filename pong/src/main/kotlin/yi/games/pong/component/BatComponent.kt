@@ -4,19 +4,29 @@ import com.almasb.fxgl.dsl.FXGL
 import com.almasb.fxgl.entity.component.Component
 import com.almasb.fxgl.physics.PhysicsComponent
 
+const val BAT_SPEED = 420.0
+const val MOVABLE_MIN_Y = BAT_SPEED / 60
 
-class BatComponent:Component() {
-    private val BAT_SPEED = 420.0
+open class BatComponent:Component() {
+
     private var physics: PhysicsComponent? = null
     fun up() {
-        if (entity.y >= BAT_SPEED / 60) physics!!.velocityY = -BAT_SPEED else stop()
+        if (entity.y >= MOVABLE_MIN_Y) {
+            physics?.velocityY = -BAT_SPEED
+        } else {
+            stop()
+        }
     }
 
     fun down() {
-        if (entity.bottomY <= FXGL.getAppHeight() - BAT_SPEED / 60) physics!!.velocityY = BAT_SPEED else stop()
+        if (entity.bottomY <= FXGL.getAppHeight() - MOVABLE_MIN_Y) {
+            physics?.velocityY = BAT_SPEED
+        } else {
+            stop()
+        }
     }
 
     fun stop() {
-        physics!!.setLinearVelocity(0.0, 0.0)
+        physics?.setLinearVelocity(0.0, 0.0)
     }
 }
