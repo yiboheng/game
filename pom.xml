@@ -12,6 +12,7 @@
     <modules>
         <module>tank</module>
         <module>pong</module>
+        <module>mario</module>
     </modules>
 
     <properties>
